@@ -55,16 +55,30 @@ namespace Ink.UnityIntegration {
 				return;
 			}
 
+			bool isInkleDevBuild = inklecatePath.Contains("inklecate_DEV.exe");
+
 			string absoluteFolderPath = Path.GetDirectoryName(absoluteFilePath);
 			string fileName = Path.GetFileName(absoluteFilePath);
 			string inputPath = Path.Combine(absoluteFolderPath, fileName);
 			string outputPath = Path.Combine(absoluteFolderPath, Path.GetFileNameWithoutExtension(fileName))+".json";
-			string inkArguments = "-c -o "+"\""+outputPath +"\" \""+inputPath+"\"";
+
+			string inkOptions = "-c";
+			if( isInkleDevBuild )
+				inkOptions += " -x ChoiceListPlugin";
+			
+			string inkArguments = inkOptions + " -o "+"\""+outputPath +"\" \""+inputPath+"\"";
 
 			Process process = new Process();
 			process.StartInfo.WorkingDirectory = absoluteFolderPath;
-			process.StartInfo.FileName = inklecatePath;
-			process.StartInfo.Arguments = inkArguments;
+
+			if( isInkleDevBuild ) {
+				process.StartInfo.FileName = "/usr/local/bin/mono";
+				process.StartInfo.Arguments = inklecatePath + " " + inkArguments;
+			} else {
+				process.StartInfo.FileName = inklecatePath;
+				process.StartInfo.Arguments = inkArguments;
+			}
+
 			process.StartInfo.RedirectStandardError = true;
 			process.StartInfo.RedirectStandardOutput = true;
 			process.StartInfo.UseShellExecute = false;
@@ -148,6 +162,12 @@ namespace Ink.UnityIntegration {
 		}
 
 		private static string GetInklecateFilePath () {
+
+			// INKLE INTERNAL: We have our own custom development build of inklecate that's copied in automatically
+			string[] inklecateDirectories = Directory.GetFiles(Application.dataPath, "inklecate_DEV.exe", SearchOption.AllDirectories);
+			if(inklecateDirectories.Length > 0)
+				return inklecateDirectories[0];
+
 			#if UNITY_EDITOR_WIN
 			string inklecateName = "inklecate_win.exe";
 			#endif
@@ -161,10 +181,7 @@ namespace Ink.UnityIntegration {
 			string inklecateName = "inklecate_mac";
 			#endif
 
-//			string defaultInklecateFilePath = Path.Combine(Application.dataPath, "Plugins/Ink/DLL/"+inklecateName);
-//			if(File.Exists(defaultInklecateFilePath))
-//				return defaultInklecateFilePath;
-			string[] inklecateDirectories = Directory.GetFiles(Application.dataPath, inklecateName, SearchOption.AllDirectories);
+			inklecateDirectories = Directory.GetFiles(Application.dataPath, inklecateName, SearchOption.AllDirectories);
 			if(inklecateDirectories.Length == 0) {
 				return null;
 			} else {
