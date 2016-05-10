@@ -4,30 +4,76 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Diagnostics;
 using UnityEditorInternal;
 using Debug = UnityEngine.Debug;
 using Ink.Runtime;
+using UnityEditor.ProjectWindowCallback;
 
 namespace Ink.UnityIntegration {
+
+	class CreateInkAssetAction : EndNameEditAction {
+		public override void Action(int instanceId, string pathName, string resourceFile) {
+			UnityEngine.Object asset = CreateScriptAssetFromTemplate(pathName, resourceFile);
+			ProjectWindowUtil.ShowCreatedAsset(asset);
+		}
+		
+		internal static UnityEngine.Object CreateScriptAssetFromTemplate(string pathName, string templateFilePath) {
+			string fullPath = Path.GetFullPath(pathName);
+			string text = "";
+			if(File.Exists(templateFilePath)) {
+				StreamReader streamReader = new StreamReader(templateFilePath);
+				text = streamReader.ReadToEnd();
+				streamReader.Close();
+			} else {
+				Debug.LogWarning("Could not find .ink template file at expected path "+templateFilePath+". New file will be empty.");
+			}
+			UTF8Encoding encoding = new UTF8Encoding(true, false);
+			bool append = false;
+			StreamWriter streamWriter = new StreamWriter(fullPath, append, encoding);
+			streamWriter.Write(text);
+			streamWriter.Close();
+			AssetDatabase.ImportAsset(pathName);
+			return AssetDatabase.LoadAssetAtPath(pathName, typeof(DefaultAsset));
+		}
+	}
+
 	public static class InkEditorUtils {
 		public const string inkFileExtension = ".ink";
+		private const string templateFileLocation = "Assets/Plugins/Ink/Template/Template.txt";
 
-		[MenuItem("Assets/Create/Ink")]
-		public static void CreateFile() {
-	//		var icon = AssetDatabase.LoadAssetAtPath("Assets/Plugins/Ink/Resources/InkIcon.png", typeof(Texture2D)) as Texture2D;
-	//		ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, ScriptableObject.CreateInstance<Ink>(), "NewFSharpFile.fs", icon, "");
-			//....
-			//IO stuff to create the file.
-	//		ProjectWindowUtil.ShowCreatedAsset(file);
+		[MenuItem("Assets/Create/Ink", false, 100)]
+		public static void CreateNewInkFile () {
+			string fileName = "New Ink.ink";
+			string filePath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(GetSelectedPathOrFallback(), fileName));
+			CreateNewInkFile(filePath);
 		}
 
-		[MenuItem("Ink/Help/About")]
+		public static void CreateNewInkFile (string filePath) {
+			ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, ScriptableObject.CreateInstance<CreateInkAssetAction>(), filePath, InkBrowserIcons.inkFileIcon, templateFileLocation);
+		}
+
+		private static string GetSelectedPathOrFallback() {
+	         string path = "Assets";
+	         foreach (UnityEngine.Object obj in Selection.GetFiltered(typeof(UnityEngine.Object), SelectionMode.Assets)) {
+	             path = AssetDatabase.GetAssetPath(obj);
+	             if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
+	                 path = Path.GetDirectoryName(path);
+	                 break;
+	             }
+	         }
+	         return path;
+	     }
+
+		
+
+		[MenuItem("Help/Ink/About")]
 		public static void OpenAbout() {
 			Application.OpenURL("https://github.com/inkle/ink#ink");
 		}
 
-		[MenuItem("Ink/Help/API Documentation...")]
+		[MenuItem("Help/Ink/API Documentation...")]
 		public static void OpenWritingDocumentation() {
 			Application.OpenURL("https://github.com/inkle/ink/blob/master/Documentation/RunningYourInk.md");
 		}
@@ -92,6 +138,34 @@ namespace Ink.UnityIntegration {
 				}
 			}
 			return true;
+		}
+
+		public static string GetInklecateFilePath () {
+
+			// INKLE INTERNAL: We have our own custom development build of inklecate that's copied in automatically
+			string[] inklecateDirectories = Directory.GetFiles(Application.dataPath, "inklecate_DEV.exe", SearchOption.AllDirectories);
+			if(inklecateDirectories.Length > 0)
+				return inklecateDirectories[0];
+			
+			#if UNITY_EDITOR_WIN
+			string inklecateName = "inklecate_win.exe";
+			#endif
+
+			// Unfortunately inklecate's implementation uses newer features of C# that aren't
+			// available in the version of mono that ships with Unity, so we can't make use of
+			// it. This means that we need to compile the mono runtime directly into it, inflating
+			// the size of the executable quite dramatically :-( Hopefully we can improve that
+			// when Unity ships with a newer version.
+			#if UNITY_EDITOR_OSX
+			string inklecateName = "inklecate_mac";
+			#endif
+
+			inklecateDirectories = Directory.GetFiles(Application.dataPath, inklecateName, SearchOption.AllDirectories);
+			if(inklecateDirectories.Length == 0) {
+				return null;
+			} else {
+				return Path.GetFullPath(inklecateDirectories[0]);
+			}
 		}
 	}
 }

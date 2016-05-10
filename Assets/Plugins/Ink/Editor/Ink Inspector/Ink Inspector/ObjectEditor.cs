@@ -15,6 +15,7 @@ namespace Ink.UnityIntegration {
 		private void OnEnable () {
 			objectInspector = FindObjectInspector ();
 			if(objectInspector != null) {
+				objectInspector.editor = this;
 				objectInspector.serializedObject = serializedObject;
 				objectInspector.target = target;
 				objectInspector.OnEnable();
@@ -27,8 +28,10 @@ namespace Ink.UnityIntegration {
 		}
 
 		public override void OnInspectorGUI () {
-			if(objectInspector != null)
+			if(objectInspector != null) {
+				GUI.enabled = true;
 				objectInspector.OnInspectorGUI();
+			}
 			else if (target.GetType() != typeof(UnityEditor.DefaultAsset))
 				base.OnInspectorGUI();
 		}
