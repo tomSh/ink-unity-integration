@@ -18,7 +18,7 @@ Features:
 * Download the [latest Unity package release](https://github.com/inkle/ink-unity-integration/releases), and add to your Unity project.
 * Select one of the sample `.ink` stories included in the package. In Unity's Inspector window, you should see a *Play* button. Click it to open the **ink player** window, useful for playing (previewing) ink stories.
 
-For more information on **ink**, see [the documentation in the main ink repo](https://github.com/inkle/ink). For convenience, the package also creates an (**Ink > Help**) menu option.
+For more information on **ink**, see [the documentation in the main ink repo](https://github.com/inkle/ink). For convenience, the package also creates (**Help > Ink**) menu options.
 
 ## Using ink in game your game. 
 
@@ -57,6 +57,11 @@ This package also replaces the icon for ink files to make them easier to spot, a
 The ink git repo is updated far more frequently than the asset store package. 
 
 If you're interested in keeping up-to-date with cutting edge features, you can download the [latest releases from the GitHub repo](https://github.com/inkle/ink/releases).
+
+
+## Sublime Text Syntax Highlighting
+
+The Sublime3Syntax zip file in the Extras folder provides syntax highlighting for ink files in Sublime Text 3. Installation details can be found in the readme inside the zip file.
 
 ## Customisation
 
